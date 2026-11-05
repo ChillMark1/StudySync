@@ -1,8 +1,0 @@
-{
-  "name": "studysync",
-  "version": "1.0.0",
-  "description": "Study planner with study groups and shared material",
-  "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" }
-}
