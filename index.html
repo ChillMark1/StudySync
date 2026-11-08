@@ -33,21 +33,24 @@
 
             <!-- Auth Tabs -->
             <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6">
-                <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 pb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Sign In</button>
-                <button onclick="switchAuthTab('register')" id="tab-register" class="flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors">Register</button>
+                <button type="button" onclick="switchAuthTab('login')" id="tab-login" class="flex-1 pb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Sign In</button>
+                <button type="button" onclick="switchAuthTab('register')" id="tab-register" class="flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors">Register</button>
             </div>
 
-            <!-- Error message container -->
             <div id="auth-error" class="hidden mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm"></div>
 
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Username</label>
-                    <input type="text" id="auth-username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="e.g. t_mark">
+                    <input type="text" id="auth-username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="Enter username">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Password</label>
                     <input type="password" id="auth-password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="••••••••">
+                </div>
+                <div id="confirm-password-container" class="hidden">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Confirm Password</label>
+                    <input type="password" id="auth-confirm-password" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="••••••••">
                 </div>
 
                 <div id="remember-me-container" class="flex items-center justify-between text-sm pt-1">
@@ -75,7 +78,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button onclick="toggleDarkMode()" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Toggle Theme">
+                <button type="button" onclick="toggleDarkMode()" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Toggle Theme">
                     <svg id="theme-icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <svg id="theme-icon-moon" class="w-5 h-5 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
@@ -84,18 +87,18 @@
                     <div id="nav-user-avatar" class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs uppercase"></div>
                     <span id="nav-username" class="text-sm font-medium"></span>
                 </div>
-                <button onclick="logout()" class="ml-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Log Out</button>
+                <button type="button" onclick="logout()" class="ml-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Log Out</button>
             </div>
         </header>
 
         <!-- Navigation Tabs -->
         <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex gap-8">
-            <button onclick="switchTab('dashboard')" id="nav-tab-dashboard" class="py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Dashboard</button>
-            <button onclick="switchTab('subjects')" id="nav-tab-subjects" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Subject Modules</button>
-            <button onclick="switchTab('tasks')" id="nav-tab-tasks" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Task Planner</button>
-            <button onclick="switchTab('groups')" id="nav-tab-groups" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Study Groups & Chat</button>
-            <button onclick="switchTab('materials')" id="nav-tab-materials" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Materials Library</button>
-            <button onclick="switchTab('profile')" id="nav-tab-profile" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Profile</button>
+            <button type="button" onclick="switchTab('dashboard')" id="nav-tab-dashboard" class="py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Dashboard</button>
+            <button type="button" onclick="switchTab('subjects')" id="nav-tab-subjects" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Subjects</button>
+            <button type="button" onclick="switchTab('tasks')" id="nav-tab-tasks" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Task Planner</button>
+            <button type="button" onclick="switchTab('groups')" id="nav-tab-groups" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Study Groups & Chat</button>
+            <button type="button" onclick="switchTab('materials')" id="nav-tab-materials" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Materials Library</button>
+            <button type="button" onclick="switchTab('profile')" id="nav-tab-profile" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Profile</button>
         </nav>
 
         <!-- Main Content Area -->
@@ -106,11 +109,11 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-2xl font-bold tracking-tight">Academic Dashboard</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Overview of your active tasks, deadlines, and group updates.</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Overview of your subjects, task statuses, and deadline warnings.</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Subject</button>
-                        <button onclick="openTaskModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Task</button>
+                        <button type="button" onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Subject</button>
+                        <button type="button" onclick="openTaskModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Task</button>
                     </div>
                 </div>
 
@@ -134,32 +137,23 @@
                     </div>
                 </div>
 
-                <!-- Upcoming Deadlines & Recent Files -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-                        <h3 class="text-base font-bold mb-4">Upcoming Deadlines & Progress</h3>
-                        <div id="dashboard-urgent-tasks" class="space-y-3">
-                            <p class="text-sm text-slate-400 italic py-4 text-center">No active tasks or subjects with deadlines. Create one to get started!</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-                        <h3 class="text-base font-bold mb-4">Recent Shared Resources</h3>
-                        <div id="dashboard-recent-materials" class="space-y-3">
-                            <p class="text-sm text-slate-400 italic py-4 text-center">No materials shared yet.</p>
-                        </div>
+                <!-- Subject Progress & Deadline Warnings -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                    <h3 class="text-base font-bold">Subject Task Breakdown & Deadline Warnings</h3>
+                    <div id="dashboard-subject-progress-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-xs text-slate-400 italic py-4">No subjects found.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- VIEW: SUBJECT MODULES -->
+            <!-- VIEW: SUBJECTS -->
             <section id="view-subjects" class="space-y-6 max-w-7xl mx-auto hidden">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h2 class="text-2xl font-bold tracking-tight">Subject Modules</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Organize your subjects, track file collections, and monitor remaining files.</p>
+                        <h2 class="text-2xl font-bold tracking-tight">Subjects</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Organize your academic subjects and access their associated tasks.</p>
                     </div>
-                    <button onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Subject</button>
+                    <button type="button" onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Subject</button>
                 </div>
 
                 <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -172,15 +166,20 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-2xl font-bold tracking-tight">Task Planner</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage daily tasks, deadlines, priorities, and attached files.</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage tasks grouped by subject with file attachments and deadlines.</p>
                     </div>
-                    <button onclick="openTaskModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Task</button>
+                    <button type="button" onclick="openTaskModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Task</button>
                 </div>
 
-                <div class="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
-                    <button onclick="filterTasks('all')" id="filter-task-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Tasks</button>
-                    <button onclick="filterTasks('pending')" id="filter-task-pending" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Pending</button>
-                    <button onclick="filterTasks('completed')" id="filter-task-completed" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Completed</button>
+                <!-- Subject Tabs Filter -->
+                <div id="task-subject-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="flex gap-2 pb-1">
+                    <button type="button" onclick="filterTasks('all')" id="filter-task-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Tasks</button>
+                    <button type="button" onclick="filterTasks('pending')" id="filter-task-pending" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Pending</button>
+                    <button type="button" onclick="filterTasks('completed')" id="filter-task-completed" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Completed</button>
                 </div>
 
                 <div id="tasks-list" class="space-y-3">
@@ -196,21 +195,17 @@
                         <p class="text-sm text-slate-500 dark:text-slate-400">Join multiple study groups, chat in real-time, and share study materials directly.</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="openCreateGroupModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Create Group</button>
-                        <button onclick="openJoinGroupModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">Join with Code</button>
+                        <button type="button" onclick="openCreateGroupModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Create Group</button>
+                        <button type="button" onclick="openJoinGroupModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">Join with Code</button>
                     </div>
                 </div>
 
                 <!-- Group Selector Tabs -->
-                <div id="group-selector-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
-                    <!-- Populated dynamically -->
-                </div>
+                <div id="group-selector-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3"></div>
 
                 <!-- Active Group Workspace -->
                 <div id="group-workspace" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Chat Panel -->
                     <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col h-[600px]">
-                        <!-- Chat Header -->
                         <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                             <div>
                                 <h3 id="active-group-title" class="font-bold text-base">Select a Study Group</h3>
@@ -218,22 +213,19 @@
                             </div>
                             <span id="active-group-members-count" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">0 Members</span>
                         </div>
-                        <!-- Messages Feed -->
                         <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
-                            <div class="text-center text-slate-400 py-12 text-sm">Select or create a study group to start chatting and sharing materials.</div>
+                            <div class="text-center text-slate-400 py-12 text-sm">Select or create a study group to start chatting.</div>
                         </div>
-                        <!-- Chat Input Bar -->
                         <div class="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-2">
                             <label class="cursor-pointer p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Attach File">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                                 <input type="file" id="chat-file-input" onchange="handleChatFileUpload(event)" class="hidden">
                             </label>
                             <input type="text" id="chat-input-text" onkeypress="handleChatKeyPress(event)" placeholder="Type a message or share study thoughts..." class="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <button onclick="sendChatMessage()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">Send</button>
+                            <button type="button" onclick="sendChatMessage()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">Send</button>
                         </div>
                     </div>
 
-                    <!-- Members Panel -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 flex flex-col h-[600px]">
                         <h3 class="font-bold text-sm mb-4">Group Members</h3>
                         <div id="group-members-list" class="flex-1 overflow-y-auto space-y-2">
@@ -248,18 +240,25 @@
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-2xl font-bold tracking-tight">Materials Library</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">All uploaded study files, notes, and shared group documents.</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">All uploaded study files and shared group documents with uploader and group attribution.</p>
                     </div>
-                    <button onclick="openMaterialUploadModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Upload Material</button>
+                    <button type="button" onclick="openMaterialUploadModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Upload Material</button>
                 </div>
 
                 <!-- Category Filters -->
-                <div class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
-                    <button onclick="filterMaterials('ALL')" id="mat-filter-ALL" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Resources</button>
-                    <button onclick="filterMaterials('Group Resources')" id="mat-filter-Group Resources" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Group Resources</button>
-                    <button onclick="filterMaterials('Lecture Notes')" id="mat-filter-Lecture Notes" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lecture Notes</button>
-                    <button onclick="filterMaterials('Lab Guide')" id="mat-filter-Lab Guide" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lab Guide</button>
-                    <button onclick="filterMaterials('Exam Prep')" id="mat-filter-Exam Prep" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Exam Prep</button>
+                <div class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3 items-center">
+                    <button type="button" onclick="filterMaterials('ALL')" id="mat-filter-ALL" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Resources</button>
+                    <button type="button" onclick="filterMaterials('Group Resources')" id="mat-filter-Group Resources" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Group Resources</button>
+                    <button type="button" onclick="filterMaterials('Lecture Notes')" id="mat-filter-Lecture Notes" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lecture Notes</button>
+                    <button type="button" onclick="filterMaterials('Lab Guide')" id="mat-filter-Lab Guide" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lab Guide</button>
+                    <button type="button" onclick="filterMaterials('Exam Prep')" id="mat-filter-Exam Prep" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Exam Prep</button>
+
+                    <!-- Group Filter Dropdown for Group Resources -->
+                    <div id="material-group-dropdown-container" class="ml-auto hidden">
+                        <select id="material-group-filter-select" onchange="renderMaterials()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-medium focus:outline-none">
+                            <option value="ALL">All Joined Groups</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -291,13 +290,13 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">University / Institution</label>
-                                <input type="text" id="profile-input-university" placeholder="e.g. Ufa University of Science and Technology" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <input type="text" id="profile-input-university" placeholder="Enter university name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">University Group Name / Designation</label>
-                            <input type="text" id="profile-input-group" placeholder="e.g. PRO-AN-202B" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <input type="text" id="profile-input-group" placeholder="Enter group name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         </div>
 
                         <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition-colors shadow-sm">Save Profile Changes</button>
@@ -313,55 +312,48 @@
     <!-- Subject Modal -->
     <div id="subject-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700">
-            <h3 id="subject-modal-title" class="text-lg font-bold mb-4">Create Subject Module</h3>
+            <h3 id="subject-modal-title" class="text-lg font-bold mb-4">Create Subject</h3>
             <form id="subject-form" onsubmit="handleSubjectSubmit(event)" class="space-y-4">
                 <input type="hidden" id="edit-subject-id">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Subject Name</label>
-                    <input type="text" id="sub-name" required placeholder="e.g. Data Structures & Algorithms" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Target Deadline</label>
-                    <input type="date" id="sub-deadline" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Add Study Files (Multiple)</label>
-                    <input type="file" id="sub-files" multiple class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/50 file:text-indigo-600 dark:file:text-indigo-400 hover:file:bg-indigo-100">
+                    <input type="text" id="sub-name" required placeholder="Enter subject name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button type="button" onclick="closeSubjectModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Save Module</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Save Subject</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Task Modal -->
+    <!-- Task Modal (Create & Edit) -->
     <div id="task-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700">
-            <h3 class="text-lg font-bold mb-4">Create New Task</h3>
-            <form onsubmit="handleTaskSubmit(event)" class="space-y-4">
+            <h3 id="task-modal-title" class="text-lg font-bold mb-4">Create New Task</h3>
+            <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-4">
+                <input type="hidden" id="edit-task-id">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Task Title</label>
-                    <input type="text" id="task-title" required placeholder="e.g. Complete Lab Assignment 2" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" id="task-title" required placeholder="Enter task title" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Associated Subject</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Subject</label>
                     <select id="task-subject-select" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <!-- Populated dynamically -->
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Deadline</label>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Deadline Date</label>
                         <input type="date" id="task-deadline" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Priority</label>
-                        <select id="task-priority" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="Low">Low</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="High">High</option>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Category</label>
+                        <select id="task-category" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="Lecture Notes">Lecture Notes</option>
+                            <option value="Lab Guide">Lab Guide</option>
+                            <option value="Exam Prep">Exam Prep</option>
                         </select>
                     </div>
                 </div>
@@ -371,7 +363,7 @@
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button type="button" onclick="closeTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Add Task</button>
+                    <button type="submit" id="task-submit-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Add Task</button>
                 </div>
             </form>
         </div>
@@ -384,7 +376,7 @@
             <form onsubmit="handleCreateGroupSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Group Name</label>
-                    <input type="text" id="new-group-name" required placeholder="e.g. Software Engineering Project Squad" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" id="new-group-name" required placeholder="Enter study group name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
@@ -401,7 +393,7 @@
             <form onsubmit="handleJoinGroupSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Group Join Code</label>
-                    <input type="text" id="join-group-code-input" required placeholder="e.g. GRP-8492" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm uppercase focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" id="join-group-code-input" required placeholder="Enter group join code" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm uppercase focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button type="button" onclick="closeJoinGroupModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
@@ -418,7 +410,7 @@
             <form onsubmit="handleMaterialUploadSubmit(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Resource Title</label>
-                    <input type="text" id="mat-title" required placeholder="e.g. Chapter 4 Summary Notes" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" id="mat-title" required placeholder="Enter resource title" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Category</label>
@@ -440,6 +432,7 @@
         </div>
     </div>
 
+    <!-- External Script Import -->
     <script src="script.js"></script>
 </body>
 </html>
