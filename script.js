@@ -1,17 +1,15 @@
-// Global Application State
 let currentUser = null;
 let currentTab = 'dashboard';
 let taskFilter = 'all';
 let materialFilter = 'ALL';
 let activeGroupId = null;
+let activeTaskSubjectId = 'ALL';
 
-// Initialization on DOM Load
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     checkSession();
 });
 
-// Theme Management
 function initTheme() {
     const savedTheme = localStorage.getItem('studysync_theme') || 'light';
     if (savedTheme === 'dark') {
@@ -21,7 +19,7 @@ function initTheme() {
     } else {
         document.documentElement.classList.remove('dark');
         document.getElementById('theme-icon-sun').classList.add('hidden');
-        document.getElementById('theme-icon-moon').classList.remove('hidden');
+        document.getElementById('theme-icon-moon').classList.add('block');
     }
 }
 
@@ -32,7 +30,6 @@ function toggleDarkMode() {
     document.getElementById('theme-icon-moon').classList.toggle('hidden', isDark);
 }
 
-// Authentication Handlers
 function switchAuthTab(tab) {
     const isLogin = tab === 'login';
     document.getElementById('tab-login').className = isLogin 
@@ -43,7 +40,11 @@ function switchAuthTab(tab) {
         : 'flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors';
     
     document.getElementById('auth-submit-btn').textContent = isLogin ? 'Sign In' : 'Create Account';
+    document.getElementById('confirm-password-container').style.display = isLogin ? 'none' : 'block';
     document.getElementById('remember-me-container').style.display = isLogin ? 'flex' : 'none';
+    if (isLogin) {
+        document.getElementById('auth-confirm-password').value = '';
+    }
     hideAuthError();
 }
 
@@ -92,6 +93,11 @@ function handleAuthSubmit(event) {
         }
         startAppSession();
     } else {
+        const confirmPass = document.getElementById('auth-confirm-password').value;
+        if (password !== confirmPass) {
+            showAuthError('Passwords do not match.');
+            return;
+        }
         if (users[username]) {
             showAuthError('Account already registered.');
             return;
@@ -122,7 +128,9 @@ function hashPassword(str) {
 function checkSession() {
     const rememberedUser = localStorage.getItem('studysync_remember_user');
     const rememberedPass = localStorage.getItem('studysync_remember_pass');
-    if (rememberedUser && rememberedPass) {
+    const isExplicitLogout = sessionStorage.getItem('studysync_logged_out') === 'true';
+
+    if (rememberedUser && rememberedPass && !isExplicitLogout) {
         const users = getUsers();
         if (users[rememberedUser] && users[rememberedUser].password === hashPassword(rememberedPass)) {
             currentUser = rememberedUser;
@@ -133,19 +141,25 @@ function checkSession() {
             return;
         }
     }
+
+    if (rememberedUser && rememberedPass) {
+        document.getElementById('auth-username').value = rememberedUser;
+        document.getElementById('auth-password').value = rememberedPass;
+        document.getElementById('remember-me').checked = true;
+    }
+
     document.getElementById('auth-modal').classList.remove('hidden');
     document.getElementById('app-container').classList.add('hidden');
 }
 
 function startAppSession() {
+    sessionStorage.removeItem('studysync_logged_out');
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('app-container').classList.remove('hidden');
 
-    // Header updates
     document.getElementById('nav-username').textContent = currentUser;
     document.getElementById('nav-user-avatar').textContent = currentUser.charAt(0).toUpperCase();
 
-    // Ensure user profile data exists
     const users = getUsers();
     if (users[currentUser] && !users[currentUser].joinedGroups) {
         users[currentUser].joinedGroups = [];
@@ -161,26 +175,28 @@ function logout() {
     if (!rememberMe) {
         localStorage.removeItem('studysync_remember_user');
         localStorage.removeItem('studysync_remember_pass');
-        document.getElementById('auth-username').value = '';
-        document.getElementById('auth-password').value = '';
-        document.getElementById('remember-me').checked = false;
     }
+    sessionStorage.setItem('studysync_logged_out', 'true');
     currentUser = null;
+
+    document.getElementById('auth-username').value = localStorage.getItem('studysync_remember_user') || '';
+    document.getElementById('auth-password').value = localStorage.getItem('studysync_remember_pass') || '';
+    document.getElementById('auth-confirm-password').value = '';
+    document.getElementById('remember-me').checked = !!localStorage.getItem('studysync_remember_user');
+    
+    switchAuthTab('login');
     checkSession();
 }
 
-// Navigation Tabs
 function switchTab(tabId) {
     currentTab = tabId;
     ['dashboard', 'subjects', 'tasks', 'groups', 'materials', 'profile'].forEach(t => {
         document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tabId);
         const navBtn = document.getElementById(`nav-tab-${t}`);
         if (navBtn) {
-            if (t === tabId) {
-                navBtn.className = 'py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors';
-            } else {
-                navBtn.className = 'py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors';
-            }
+            navBtn.className = t === tabId 
+                ? 'py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors'
+                : 'py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors';
         }
     });
 
@@ -192,17 +208,14 @@ function switchTab(tabId) {
     if (tabId === 'profile') renderProfile();
 }
 
-// User-Specific Storage Helpers
 function getUserData(key) {
-    const data = JSON.parse(localStorage.getItem(`studysync_${currentUser}_${key}`) || '[]');
-    return data;
+    return JSON.parse(localStorage.getItem(`studysync_${currentUser}_${key}`) || '[]');
 }
 
 function saveUserData(key, data) {
     localStorage.setItem(`studysync_${currentUser}_${key}`, JSON.stringify(data));
 }
 
-// Global Groups Storage
 function getGlobalGroups() {
     return JSON.parse(localStorage.getItem('studysync_global_groups') || '[]');
 }
@@ -213,17 +226,16 @@ function saveGlobalGroups(groups) {
 
 function initGlobalGroups() {
     let groups = getGlobalGroups();
-    // Ensure user is in at least one group if any exist, otherwise leave empty
     saveGlobalGroups(groups);
 }
 
-// --- SUBJECT MODULES ---
+// --- SUBJECTS ---
 function openSubjectModal(subjectId = null) {
     const modal = document.getElementById('subject-modal');
     const form = document.getElementById('subject-form');
     form.reset();
     document.getElementById('edit-subject-id').value = '';
-    document.getElementById('subject-modal-title').textContent = 'Create Subject Module';
+    document.getElementById('subject-modal-title').textContent = 'Create Subject';
 
     if (subjectId) {
         const subjects = getUserData('subjects');
@@ -231,8 +243,7 @@ function openSubjectModal(subjectId = null) {
         if (sub) {
             document.getElementById('edit-subject-id').value = sub.id;
             document.getElementById('sub-name').value = sub.name;
-            document.getElementById('sub-deadline').value = sub.deadline;
-            document.getElementById('subject-modal-title').textContent = 'Edit Subject Module';
+            document.getElementById('subject-modal-title').textContent = 'Edit Subject';
         }
     }
     modal.classList.remove('hidden');
@@ -244,139 +255,68 @@ function closeSubjectModal() {
     document.getElementById('subject-modal').classList.remove('flex');
 }
 
-async function handleSubjectSubmit(event) {
+function handleSubjectSubmit(event) {
     event.preventDefault();
     const editId = document.getElementById('edit-subject-id').value;
-    const name = document.getElementById('sub-name').value;
-    const deadline = document.getElementById('sub-deadline').value;
-    const fileInput = document.getElementById('sub-files');
+    const name = document.getElementById('sub-name').value.trim();
 
     let subjects = getUserData('subjects');
-    let filesList = [];
-
-    if (fileInput.files.length > 0) {
-        for (let file of fileInput.files) {
-            const dataUrl = await readFileAsDataURL(file);
-            filesList.push({
-                id: 'file_' + Math.random().toString(36.substring(2, 9)),
-                name: file.name,
-                size: formatFileSize(file.size),
-                type: file.type || 'application/octet-stream',
-                url: dataUrl,
-                completed: false,
-                uploadedBy: currentUser,
-                date: new Date().toLocaleDateString()
-            });
-        }
-    }
 
     if (editId) {
-        subjects = subjects.map(s => {
-            if (s.id === editId) {
-                return {
-                    ...s,
-                    name,
-                    deadline,
-                    files: [...s.files, ...filesList]
-                };
-            }
-            return s;
-        });
+        subjects = subjects.map(s => s.id === editId ? { ...s, name } : s);
     } else {
-        const newSub = {
-            id: 'sub_' + Math.random().toString(36.substring(2, 9)),
-            name,
-            deadline,
-            files: filesList
-        };
-        subjects.push(newSub);
+        subjects.push({ id: 'sub_' + Math.random().toString(36).substring(2, 9), name });
     }
 
     saveUserData('subjects', subjects);
     closeSubjectModal();
     renderSubjects();
-    syncSubjectFilesToMaterials();
+    renderDashboard();
 }
 
-function deleteSubject(id) {
-    if (confirm('Are you sure you want to delete this subject module?')) {
+function deleteSubject(id, event) {
+    if (event) event.stopPropagation();
+    if (confirm('Are you sure you want to delete this subject?')) {
         let subjects = getUserData('subjects');
         subjects = subjects.filter(s => s.id !== id);
         saveUserData('subjects', subjects);
         renderSubjects();
+        renderDashboard();
     }
 }
 
-function toggleSubjectFile(subjectId, fileId) {
-    let subjects = getUserData('subjects');
-    subjects = subjects.map(s => {
-        if (s.id === subjectId) {
-            s.files = s.files.map(f => {
-                if (f.id === fileId) f.completed = !f.completed;
-                return f;
-            });
-        }
-        return s;
-    });
-    saveUserData('subjects', subjects);
-    renderSubjects();
+function viewSubjectTasks(subjectId) {
+    activeTaskSubjectId = subjectId;
+    switchTab('tasks');
 }
 
 function renderSubjects() {
     const grid = document.getElementById('subjects-grid');
     const subjects = getUserData('subjects');
+    const tasks = getUserData('tasks');
 
     if (subjects.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 italic">No subject modules created yet. Click "+ Add Subject" to begin.</div>`;
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 italic text-xs">No subjects created yet. Click "+ Add Subject" to begin.</div>`;
         return;
     }
 
     grid.innerHTML = subjects.map(sub => {
-        const totalFiles = sub.files.length;
-        const completedFiles = sub.files.filter(f => f.completed).length;
-        const remainingFiles = totalFiles - completedFiles;
-        const percent = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0;
-        const deadlineInfo = calculateDeadlineInfo(sub.deadline);
+        const subTasks = tasks.filter(t => t.subjectId === sub.id);
+        const pendingCount = subTasks.filter(t => !t.completed).length;
 
         return `
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 flex flex-col justify-between">
+            <div onclick="viewSubjectTasks('${sub.id}')" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 flex flex-col justify-between cursor-pointer hover:border-indigo-500 transition-all group">
                 <div>
-                    <div class="flex items-start justify-between gap-2 mb-2">
-                        <h3 class="font-bold text-base leading-tight">${escapeHTML(sub.name)}</h3>
-                        <div class="flex gap-1">
-                            <button onclick="openSubjectModal('${sub.id}')" class="p-1 rounded text-slate-400 hover:text-indigo-600" title="Edit Subject">✏️</button>
-                            <button onclick="deleteSubject('${sub.id}')" class="p-1 rounded text-slate-400 hover:text-red-600" title="Delete Subject">🗑️</button>
+                    <div class="flex items-start justify-between gap-2 mb-3">
+                        <h3 class="font-bold text-sm leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${escapeHTML(sub.name)}</h3>
+                        <div class="flex gap-1" onclick="event.stopPropagation()">
+                            <button type="button" onclick="openSubjectModal('${sub.id}')" class="p-1 text-xs text-slate-400 hover:text-indigo-600">✏️</button>
+                            <button type="button" onclick="deleteSubject('${sub.id}', event)" class="p-1 text-xs text-slate-400 hover:text-red-600">🗑️</button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-xs px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-medium">${deadlineInfo.badgeText}</span>
-                        <span class="text-xs text-slate-500">${remainingFiles} file(s) remaining</span>
-                    </div>
-
-                    <!-- Progress bar -->
-                    <div class="mb-4">
-                        <div class="flex justify-between text-xs text-slate-500 mb-1">
-                            <span>Progress (${completedFileCountText(completedFiles, totalFiles)})</span>
-                            <span class="font-semibold">${percent}%</span>
-                        </div>
-                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                            <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Files Collection List -->
-                    <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Files Collection</p>
-                        ${sub.files.length === 0 ? '<p class="text-xs text-slate-400 italic">No files attached to this subject.</p>' : 
-                            sub.files.map(f => `
-                                <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
-                                    <label class="flex items-center gap-2 cursor-pointer truncate flex-1">
-                                        <input type="checkbox" ${f.completed ? 'checked' : ''} onchange="toggleSubjectFile('${sub.id}', '${f.id}')" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
-                                        <span class="${f.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'} truncate">${escapeHTML(f.name)}</span>
-                                    </label>
-                                    <a href="${f.url}" download="${f.name}" class="text-indigo-600 dark:text-indigo-400 hover:underline ml-2">Download</a>
-                                </div>
-                            `).join('')}
+                    <div class="flex items-center justify-between text-xs text-slate-500 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                        <span>Pending Tasks: <strong class="text-indigo-600 dark:text-indigo-400">${pendingCount}</strong> / ${subTasks.length}</span>
+                        <span class="text-indigo-600 dark:text-indigo-400 font-semibold group-hover:underline">View Tasks →</span>
                     </div>
                 </div>
             </div>
@@ -384,17 +324,32 @@ function renderSubjects() {
     }).join('');
 }
 
-function completedFileCountText(comp, total) {
-    return `${comp}/${total} completed`;
-}
-
-// --- TASK PLANNER ---
-function openTaskModal() {
+// --- TASKS ---
+function openTaskModal(taskId = null) {
     const subjects = getUserData('subjects');
     const select = document.getElementById('task-subject-select');
-    select.innerHTML = subjects.length === 0 
-        ? '<option value="">No subjects available (Create one first)</option>'
-        : subjects.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('');
+    select.innerHTML = '<option value="">-- Select a Subject --</option>' + 
+        subjects.map(s => `<option value="${s.id}">${escapeHTML(s.name)}</option>`).join('');
+
+    const form = document.getElementById('task-form');
+    form.reset();
+    document.getElementById('edit-task-id').value = '';
+    document.getElementById('task-modal-title').textContent = 'Create New Task';
+    document.getElementById('task-submit-btn').textContent = 'Add Task';
+
+    if (taskId) {
+        const tasks = getUserData('tasks');
+        const t = tasks.find(task => task.id === taskId);
+        if (t) {
+            document.getElementById('edit-task-id').value = t.id;
+            document.getElementById('task-title').value = t.title;
+            document.getElementById('task-subject-select').value = t.subjectId;
+            document.getElementById('task-deadline').value = t.deadline;
+            document.getElementById('task-category').value = t.category || 'Lecture Notes';
+            document.getElementById('task-modal-title').textContent = 'Edit Task';
+            document.getElementById('task-submit-btn').textContent = 'Save Changes';
+        }
+    }
 
     document.getElementById('task-modal').classList.remove('hidden');
     document.getElementById('task-modal').classList.add('flex');
@@ -407,17 +362,24 @@ function closeTaskModal() {
 
 async function handleTaskSubmit(event) {
     event.preventDefault();
+    const editId = document.getElementById('edit-task-id').value;
     const title = document.getElementById('task-title').value;
     const subjectId = document.getElementById('task-subject-select').value;
     const deadline = document.getElementById('task-deadline').value;
-    const priority = document.getElementById('task-priority').value;
+    const category = document.getElementById('task-category').value;
     const fileInput = document.getElementById('task-files');
 
+    if (!subjectId) {
+        alert('Please select a subject before adding a task.');
+        return;
+    }
+
     let filesList = [];
-    if (fileInput.files.length > 0) {
+    if (fileInput && fileInput.files.length > 0) {
         for (let file of fileInput.files) {
             const dataUrl = await readFileAsDataURL(file);
             filesList.push({
+                id: 'file_' + Math.random().toString(36).substring(2, 9),
                 name: file.name,
                 size: formatFileSize(file.size),
                 url: dataUrl
@@ -425,63 +387,99 @@ async function handleTaskSubmit(event) {
         }
     }
 
-    const tasks = getUserData('tasks');
-    tasks.push({
-        id: 'task_' + Math.random().toString(36.substring(2, 9)),
-        title,
-        subjectId,
-        deadline,
-        priority,
-        completed: false,
-        files: filesList
-    });
+    let tasks = getUserData('tasks');
+    if (editId) {
+        tasks = tasks.map(t => {
+            if (t.id === editId) {
+                return {
+                    ...t,
+                    title,
+                    subjectId,
+                    deadline,
+                    category,
+                    files: filesList.length > 0 ? [...(t.files || []), ...filesList] : t.files
+                };
+            }
+            return t;
+        });
+    } else {
+        tasks.push({
+            id: 'task_' + Math.random().toString(36).substring(2, 9),
+            title,
+            subjectId,
+            deadline,
+            category,
+            completed: false,
+            files: filesList
+        });
+    }
 
     saveUserData('tasks', tasks);
     closeTaskModal();
     renderTasks();
+    renderDashboard();
+    syncTaskFilesToMaterials();
 }
 
-function toggleTaskComplete(id) {
+function toggleTaskCompletion(taskId) {
     let tasks = getUserData('tasks');
     tasks = tasks.map(t => {
-        if (t.id === id) t.completed = !t.completed;
+        if (t.id === taskId) t.completed = !t.completed;
         return t;
     });
     saveUserData('tasks', tasks);
     renderTasks();
+    renderDashboard();
 }
 
-function deleteTask(id) {
+function deleteTask(taskId) {
     let tasks = getUserData('tasks');
-    tasks = tasks.filter(t => t.id !== id);
+    tasks = tasks.filter(t => t.id !== taskId);
     saveUserData('tasks', tasks);
     renderTasks();
+    renderDashboard();
 }
 
-function filterTasks(filter) {
-    taskFilter = filter;
+function filterTasks(status) {
+    taskFilter = status;
     ['all', 'pending', 'completed'].forEach(f => {
         const btn = document.getElementById(`filter-task-${f}`);
-        if (f === filter) {
-            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400';
-        } else {
-            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700';
+        if (btn) {
+            btn.className = f === status 
+                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700';
         }
     });
     renderTasks();
 }
 
+function selectTaskSubjectTab(subjectId) {
+    activeTaskSubjectId = subjectId;
+    renderTasks();
+}
+
 function renderTasks() {
-    const container = document.getElementById('tasks-list');
-    const tasks = getUserData('tasks');
     const subjects = getUserData('subjects');
+    const tasks = getUserData('tasks');
+    const container = document.getElementById('tasks-list');
+    const tabsContainer = document.getElementById('task-subject-tabs');
+
+    tabsContainer.innerHTML = `
+        <button type="button" onclick="selectTaskSubjectTab('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTaskSubjectId === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}">All Subjects</button>
+        ${subjects.map(s => `
+            <button type="button" onclick="selectTaskSubjectTab('${s.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTaskSubjectId === s.id ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'}">${escapeHTML(s.name)}</button>
+        `).join('')}
+    `;
 
     let filtered = tasks;
-    if (taskFilter === 'pending') filtered = tasks.filter(t => !t.completed);
-    if (taskFilter === 'completed') filtered = tasks.filter(t => t.completed);
+    if (activeTaskSubjectId !== 'ALL') {
+        filtered = filtered.filter(t => t.subjectId === activeTaskSubjectId);
+    }
+    if (taskFilter === 'pending') filtered = filtered.filter(t => !t.completed);
+    if (taskFilter === 'completed') filtered = filtered.filter(t => t.completed);
 
     if (filtered.length === 0) {
-        container.innerHTML = `<div class="py-12 text-center text-slate-400 italic">No tasks found.</div>`;
+        container.innerHTML = `<div class="py-12 text-center text-slate-400 italic text-xs">No tasks found for this view.</div>`;
         return;
     }
 
@@ -489,35 +487,43 @@ function renderTasks() {
         const sub = subjects.find(s => s.id === t.subjectId);
         const subName = sub ? sub.name : 'General';
         const deadlineInfo = calculateDeadlineInfo(t.deadline);
-        const priorityColor = t.priority === 'High' ? 'bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400' : (t.priority === 'Medium' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400');
 
         return `
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete('${t.id}')" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-5 h-5 cursor-pointer">
-                    <div class="truncate">
-                        <h4 class="font-semibold text-sm ${t.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'} truncate">${escapeHTML(t.title)}</h4>
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${t.id}')" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 mt-0.5 cursor-pointer">
+                    <div class="truncate flex-1">
+                        <h4 class="font-bold text-sm ${t.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'} truncate">${escapeHTML(t.title)}</h4>
                         <div class="flex items-center gap-2 mt-1 flex-wrap">
-                            <span class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">${escapeHTML(subName)}</span>
-                            <span class="text-xs px-2 py-0.5 rounded ${priorityColor}">${t.priority}</span>
-                            <span class="text-xs text-slate-500">${deadlineInfo.badgeText}</span>
+                            <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-semibold text-[10px]">${escapeHTML(subName)}</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px]">${t.category || 'General'}</span>
+                            <span class="text-slate-500">${deadlineInfo.badgeText} (${t.deadline})</span>
                         </div>
+                        ${t.files && t.files.length > 0 ? `
+                            <div class="mt-2 space-y-1">
+                                <p class="text-[10px] font-semibold text-slate-400 uppercase">Attached Files:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    ${t.files.map(f => `
+                                        <a href="${f.url}" download="${f.name}" class="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 hover:underline">
+                                            📎 ${escapeHTML(f.name)} (${f.size})
+                                        </a>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    ${t.files && t.files.length > 0 ? `
-                        <div class="flex flex-col gap-1">
-                            ${t.files.map(f => `<a href="${f.url}" download="${f.name}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline truncate max-w-[120px]">📎 ${escapeHTML(f.name)}</a>`).join('')}
-                        </div>
-                    ` : ''}
-                    <button onclick="deleteTask('${t.id}')" class="p-2 text-slate-400 hover:text-red-600 rounded-lg">🗑️</button>
+                <div class="flex items-center gap-2 self-end sm:self-center">
+                    <button type="button" onclick="openTaskModal('${t.id}')" class="px-2.5 py-1 rounded text-xs font-semibold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">Edit</button>
+                    <button type="button" onclick="toggleTaskCompletion('${t.id}')" class="px-2.5 py-1 rounded text-xs font-semibold ${t.completed ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'}">${t.completed ? 'Mark Pending' : '✓ Complete'}</button>
+                    <button type="button" onclick="deleteTask('${t.id}')" class="p-1 text-slate-400 hover:text-red-600">🗑️</button>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// --- STUDY GROUPS & COLLABORATIVE CHAT ---
+// --- STUDY GROUPS & CHAT ---
 function openCreateGroupModal() {
     document.getElementById('create-group-modal').classList.remove('hidden');
     document.getElementById('create-group-modal').classList.add('flex');
@@ -545,7 +551,7 @@ function handleCreateGroupSubmit(event) {
 
     let groups = getGlobalGroups();
     const newGroup = {
-        id: 'group_' + Math.random().toString(36.substring(2, 9)),
+        id: 'group_' + Math.random().toString(36).substring(2, 9),
         name,
         code,
         creator: currentUser,
@@ -555,7 +561,6 @@ function handleCreateGroupSubmit(event) {
     groups.push(newGroup);
     saveGlobalGroups(groups);
 
-    // Add to user joined groups
     let users = getUsers();
     if (!users[currentUser].joinedGroups) users[currentUser].joinedGroups = [];
     users[currentUser].joinedGroups.push(newGroup.id);
@@ -597,7 +602,6 @@ function handleJoinGroupSubmit(event) {
 function renderGroupsWorkspace() {
     let groups = getGlobalGroups();
     let userGroups = groups.filter(g => g.members.includes(currentUser));
-
     const tabsContainer = document.getElementById('group-selector-tabs');
 
     if (userGroups.length === 0) {
@@ -615,7 +619,7 @@ function renderGroupsWorkspace() {
     }
 
     tabsContainer.innerHTML = userGroups.map(g => `
-        <button onclick="setActiveGroup('${g.id}')" class="px-4 py-2 rounded-lg text-xs font-semibold ${g.id === activeGroupId ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}">${escapeHTML(g.name)} (${g.code})</button>
+        <button type="button" onclick="setActiveGroup('${g.id}')" class="px-4 py-2 rounded-lg text-xs font-semibold ${g.id === activeGroupId ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}">${escapeHTML(g.name)} (${g.code})</button>
     `).join('');
 
     const activeGroup = userGroups.find(g => g.id === activeGroupId);
@@ -624,7 +628,6 @@ function renderGroupsWorkspace() {
         document.getElementById('active-group-code').textContent = `Group Code: ${activeGroup.code}`;
         document.getElementById('active-group-members-count').textContent = `${activeGroup.members.length} Member(s)`;
 
-        // Render Chat Messages
         const msgContainer = document.getElementById('chat-messages-container');
         if (activeGroup.messages.length === 0) {
             msgContainer.innerHTML = `<div class="text-center text-slate-400 py-12 text-sm">No messages in this group yet. Start the discussion!</div>`;
@@ -652,7 +655,6 @@ function renderGroupsWorkspace() {
             msgContainer.scrollTop = msgContainer.scrollHeight;
         }
 
-        // Render Members
         const memContainer = document.getElementById('group-members-list');
         memContainer.innerHTML = activeGroup.members.map(member => `
             <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
@@ -720,14 +722,16 @@ function syncGroupResourceToLibrary(file, groupId) {
     let groups = getGlobalGroups();
     const g = groups.find(grp => grp.id === groupId);
     const groupName = g ? g.name : 'Study Group';
+    const groupCode = g ? g.code : 'GRP';
 
     let materials = getUserData('materials');
     materials.push({
-        id: 'mat_' + Math.random().toString(36.substring(2, 9)),
+        id: 'mat_' + Math.random().toString(36).substring(2, 9),
         title: file.name,
         category: 'Group Resources',
-        subCategory: 'Group Shared',
+        groupId: groupId,
         groupName: groupName,
+        groupCode: groupCode,
         name: file.name,
         size: file.size,
         url: file.url,
@@ -759,11 +763,12 @@ async function handleMaterialUploadSubmit(event) {
     const dataUrl = await readFileAsDataURL(file);
     let materials = getUserData('materials');
     materials.push({
-        id: 'mat_' + Math.random().toString(36.substring(2, 9)),
+        id: 'mat_' + Math.random().toString(36).substring(2, 9),
         title,
         category,
-        subCategory: category,
+        groupId: '',
         groupName: '',
+        groupCode: '',
         name: file.name,
         size: formatFileSize(file.size),
         url: dataUrl,
@@ -781,14 +786,28 @@ function filterMaterials(cat) {
     ['ALL', 'Group Resources', 'Lecture Notes', 'Lab Guide', 'Exam Prep'].forEach(c => {
         const btn = document.getElementById(`mat-filter-${c}`);
         if (btn) {
-            if (c === cat) {
-                btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400';
-            } else {
-                btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700';
-            }
+            btn.className = c === cat 
+                ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                : 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700';
         }
     });
+
+    const dropdownContainer = document.getElementById('material-group-dropdown-container');
+    if (cat === 'Group Resources') {
+        dropdownContainer.classList.remove('hidden');
+        populateMaterialGroupFilter();
+    } else {
+        dropdownContainer.classList.add('hidden');
+    }
+
     renderMaterials();
+}
+
+function populateMaterialGroupFilter() {
+    let groups = getGlobalGroups().filter(g => g.members.includes(currentUser));
+    const select = document.getElementById('material-group-filter-select');
+    select.innerHTML = '<option value="ALL">All Joined Groups</option>' + 
+        groups.map(g => `<option value="${g.id}">${escapeHTML(g.name)} (${g.code})</option>`).join('');
 }
 
 function renderMaterials() {
@@ -798,6 +817,12 @@ function renderMaterials() {
     let filtered = materials;
     if (materialFilter !== 'ALL') {
         filtered = materials.filter(m => m.category === materialFilter);
+        if (materialFilter === 'Group Resources') {
+            const groupFilterVal = document.getElementById('material-group-filter-select').value;
+            if (groupFilterVal && groupFilterVal !== 'ALL') {
+                filtered = filtered.filter(m => m.groupId === groupFilterVal);
+            }
+        }
     }
 
     if (filtered.length === 0) {
@@ -812,9 +837,9 @@ function renderMaterials() {
                     <h3 class="font-bold text-base leading-tight truncate">${escapeHTML(m.title)}</h3>
                     <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-semibold whitespace-nowrap">${escapeHTML(m.category)}</span>
                 </div>
-                <p class="text-xs text-slate-400 mb-4">File: ${escapeHTML(m.name)} (${m.size})</p>
-                ${m.groupName ? `<p class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-1">Group: ${escapeHTML(m.groupName)}</p>` : ''}
-                <p class="text-[11px] text-slate-500">Shared by ${escapeHTML(m.sharedBy)} • ${m.date}</p>
+                <p class="text-xs text-slate-400 mb-2">File: ${escapeHTML(m.name)} (${m.size})</p>
+                ${m.groupName ? `<p class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">Group: ${escapeHTML(m.groupName)} (${escapeHTML(m.groupCode)})</p>` : ''}
+                <p class="text-[11px] text-slate-500 font-medium">Shared by ${escapeHTML(m.sharedBy)} • ${m.date}</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end">
                 <a href="${m.url}" download="${m.name}" class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition-colors">Download File</a>
@@ -823,28 +848,33 @@ function renderMaterials() {
     `).join('');
 }
 
-function syncSubjectFilesToMaterials() {
-    let subjects = getUserData('subjects');
+function syncTaskFilesToMaterials() {
+    let tasks = getUserData('tasks');
     let materials = getUserData('materials');
-    
-    // Add any subject files into materials if not already present
-    subjects.forEach(sub => {
-        sub.files.forEach(sf => {
-            if (!materials.some(m => m.url === sf.url)) {
-                materials.push({
-                    id: 'mat_' + Math.random().toString(36.substring(2, 9)),
-                    title: `${sub.name}: ${sf.name}`,
-                    category: 'Lecture Notes',
-                    subCategory: 'Subject File',
-                    groupName: '',
-                    name: sf.name,
-                    size: sf.size,
-                    url: sf.url,
-                    sharedBy: currentUser,
-                    date: sf.date || new Date().toLocaleDateString()
-                });
-            }
-        });
+    const subjects = getUserData('subjects');
+
+    tasks.forEach(t => {
+        const sub = subjects.find(s => s.id === t.subjectId);
+        const subName = sub ? sub.name : 'General';
+        if (t.files && t.files.length > 0) {
+            t.files.forEach(tf => {
+                if (!materials.some(m => m.url === tf.url)) {
+                    materials.push({
+                        id: 'mat_' + Math.random().toString(36).substring(2, 9),
+                        title: `${subName}: ${t.title} (${tf.name})`,
+                        category: t.category || 'Lecture Notes',
+                        groupId: '',
+                        groupName: '',
+                        groupCode: '',
+                        name: tf.name,
+                        size: tf.size,
+                        url: tf.url,
+                        sharedBy: currentUser,
+                        date: new Date().toLocaleDateString()
+                    });
+                }
+            });
+        }
     });
     saveUserData('materials', materials);
 }
@@ -887,47 +917,56 @@ function renderDashboard() {
     document.getElementById('stat-groups-count').textContent = groups.length;
     document.getElementById('stat-materials-count').textContent = materials.length;
 
-    // Upcoming Deadlines Container
-    const urgentContainer = document.getElementById('dashboard-urgent-tasks');
-    let combinedItems = [
-        ...subjects.map(s => ({ type: 'Subject', name: s.name, deadline: s.deadline })),
-        ...tasks.filter(t => !t.completed).map(t => ({ type: 'Task', name: t.title, deadline: t.deadline }))
-    ].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    const grid = document.getElementById('dashboard-subject-progress-grid');
+    if (subjects.length === 0) {
+        grid.innerHTML = `<p class="text-xs text-slate-400 italic py-4 col-span-full">No subjects found. Create a subject to see task progress and deadlines.</p>`;
+        return;
+    }
 
-    if (combinedItems.length === 0) {
-        urgentContainer.innerHTML = `<p class="text-sm text-slate-400 italic py-4 text-center">No upcoming deadlines.</p>`;
-    } else {
-        urgentContainer.innerHTML = combinedItems.slice(0, 5).map(item => {
-            const deadlineInfo = calculateDeadlineInfo(item.deadline);
-            return `
-                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-sm">
-                    <div>
-                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 mr-2">${item.type}</span>
-                        <span class="font-medium">${escapeHTML(item.name)}</span>
+    grid.innerHTML = subjects.map(sub => {
+        const subTasks = tasks.filter(t => t.subjectId === sub.id);
+        const pendingTasks = subTasks.filter(t => !t.completed);
+        const completedCount = subTasks.filter(t => t.completed).length;
+        const totalCount = subTasks.length;
+        const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+        let warningBadge = '';
+        if (pendingTasks.length > 0) {
+            const sorted = [...pendingTasks].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+            const closest = sorted[0];
+            const dlInfo = calculateDeadlineInfo(closest.deadline);
+
+            if (dlInfo.isOverdue) {
+                warningBadge = `<span class="px-2 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 font-bold text-[10px]">⚠️ OVERDUE: ${escapeHTML(closest.title)} (${dlInfo.badgeText} - ${closest.deadline})</span>`;
+            } else if (dlInfo.diffDays === 0) {
+                warningBadge = `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 font-bold text-[10px]">🚨 DUE TODAY: ${escapeHTML(closest.title)} (${closest.deadline})</span>`;
+            } else {
+                warningBadge = `<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 font-semibold text-[10px]">⏳ Next: ${escapeHTML(closest.title)} (${dlInfo.badgeText} - ${closest.deadline})</span>`;
+            }
+        } else {
+            warningBadge = `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 dark:text-emerald-950/40 font-semibold text-[10px]">✓ All tasks complete</span>`;
+        }
+
+        return `
+            <div onclick="viewSubjectTasks('${sub.id}')" class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between cursor-pointer hover:border-indigo-500 transition-all">
+                <div>
+                    <h4 class="font-bold text-sm mb-1">${escapeHTML(sub.name)}</h4>
+                    <p class="text-xs text-slate-500 mb-3">${pendingTasks.length} task(s) remaining out of ${totalCount}</p>
+                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden mb-3">
+                        <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${percent}%"></div>
                     </div>
-                    <span class="text-xs text-slate-500">${deadlineInfo.badgeText}</span>
                 </div>
-            `;
-        }).join('');
-    }
-
-    // Recent Materials Container
-    const recentMatContainer = document.getElementById('dashboard-recent-materials');
-    if (materials.length === 0) {
-        recentMatContainer.innerHTML = `<p class="text-sm text-slate-400 italic py-4 text-center">No materials shared yet.</p>`;
-    } else {
-        recentMatContainer.innerHTML = materials.slice(-4).reverse().map(m => `
-            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-sm">
-                <h4 class="font-semibold truncate">${escapeHTML(m.title)}</h4>
-                <p class="text-xs text-slate-400 mt-0.5">Shared by ${escapeHTML(m.sharedBy)} • ${m.date}</p>
+                <div class="mt-1 pt-2 border-t border-slate-100 dark:border-slate-700">
+                    ${warningBadge}
+                </div>
             </div>
-        `).join('');
-    }
+        `;
+    }).join('');
 }
 
 // --- UTILITIES ---
 function calculateDeadlineInfo(dateStr) {
-    if (!dateStr) return { badgeText: 'No deadline' };
+    if (!dateStr) return { badgeText: 'No deadline', isOverdue: false, diffDays: 999 };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const deadline = new Date(dateStr);
@@ -936,10 +975,10 @@ function calculateDeadlineInfo(dateStr) {
     const diffTime = deadline - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return { badgeText: `Overdue by ${Math.abs(diffDays)} day(s)` };
-    if (diffDays === 0) return { badgeText: 'Due Today' };
-    if (diffDays === 1) return { badgeText: 'Due Tomorrow' };
-    return { badgeText: `Due in ${diffDays} days` };
+    if (diffDays < 0) return { badgeText: `Overdue by ${Math.abs(diffDays)} day(s)`, isOverdue: true, diffDays };
+    if (diffDays === 0) return { badgeText: 'Due Today', isOverdue: false, diffDays: 0 };
+    if (diffDays === 1) return { badgeText: 'Due Tomorrow', isOverdue: false, diffDays: 1 };
+    return { badgeText: `Due in ${diffDays} days`, isOverdue: false, diffDays };
 }
 
 function readFileAsDataURL(file) {
