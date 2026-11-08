@@ -18,7 +18,7 @@ function initTheme() {
         document.getElementById('theme-icon-moon').classList.add('hidden');
     } else {
         document.documentElement.classList.remove('dark');
-        document.getElementById('theme-icon-sun').classList.add('hidden');
+        document.getElementById('theme-icon-sun').add ? document.getElementById('theme-icon-sun').classList.add('hidden') : null;
         document.getElementById('theme-icon-moon').classList.add('block');
     }
 }
@@ -42,7 +42,19 @@ function switchAuthTab(tab) {
     document.getElementById('auth-submit-btn').textContent = isLogin ? 'Sign In' : 'Create Account';
     document.getElementById('confirm-password-container').style.display = isLogin ? 'none' : 'block';
     document.getElementById('remember-me-container').style.display = isLogin ? 'flex' : 'none';
+    
     if (isLogin) {
+        // Restore remembered credentials if switching back to login
+        const remUser = localStorage.getItem('studysync_remember_user') || '';
+        const remPass = localStorage.getItem('studysync_remember_pass') || '';
+        document.getElementById('auth-username').value = remUser;
+        document.getElementById('auth-password').value = remPass;
+        document.getElementById('auth-confirm-password').value = '';
+        document.getElementById('remember-me').checked = !!remUser;
+    } else {
+        // Clear inputs so previous saved user data doesn't populate the register form
+        document.getElementById('auth-username').value = '';
+        document.getElementById('auth-password').value = '';
         document.getElementById('auth-confirm-password').value = '';
     }
     hideAuthError();
@@ -222,6 +234,14 @@ function getGlobalGroups() {
 
 function saveGlobalGroups(groups) {
     localStorage.setItem('studysync_global_groups', JSON.stringify(groups));
+}
+
+function getGlobalMaterials() {
+    return JSON.parse(localStorage.getItem('studysync_global_materials') || '[]');
+}
+
+function saveGlobalMaterials(mats) {
+    localStorage.setItem('studysync_global_materials', JSON.stringify(mats));
 }
 
 function initGlobalGroups() {
@@ -724,8 +744,8 @@ function syncGroupResourceToLibrary(file, groupId) {
     const groupName = g ? g.name : 'Study Group';
     const groupCode = g ? g.code : 'GRP';
 
-    let materials = getUserData('materials');
-    materials.push({
+    let globalMaterials = getGlobalMaterials();
+    const newMaterial = {
         id: 'mat_' + Math.random().toString(36).substring(2, 9),
         title: file.name,
         category: 'Group Resources',
@@ -737,8 +757,14 @@ function syncGroupResourceToLibrary(file, groupId) {
         url: file.url,
         sharedBy: currentUser,
         date: new Date().toLocaleDateString()
-    });
-    saveUserData('materials', materials);
+    };
+    globalMaterials.push(newMaterial);
+    saveGlobalMaterials(globalMaterials);
+
+    // Also sync to uploader's private list
+    let userMaterials = getUserData('materials');
+    userMaterials.push(newMaterial);
+    saveUserData('materials', userMaterials);
 }
 
 // --- MATERIALS LIBRARY ---
@@ -812,11 +838,22 @@ function populateMaterialGroupFilter() {
 
 function renderMaterials() {
     const grid = document.getElementById('materials-grid');
-    const materials = getUserData('materials');
+    const userMaterials = getUserData('materials');
+    const globalMaterials = getGlobalMaterials();
+    const userGroups = getGlobalGroups().filter(g => g.members.includes(currentUser)).map(g => g.id);
 
-    let filtered = materials;
+    // Merge private materials and group materials shared across joined groups
+    const sharedGroupMaterials = globalMaterials.filter(m => userGroups.includes(m.groupId));
+    const combinedMap = new Map();
+
+    userMaterials.forEach(m => combinedMap.set(m.id, m));
+    sharedGroupMaterials.forEach(m => combinedMap.set(m.id, m));
+
+    let allMaterials = Array.from(combinedMap.values());
+
+    let filtered = allMaterials;
     if (materialFilter !== 'ALL') {
-        filtered = materials.filter(m => m.category === materialFilter);
+        filtered = allMaterials.filter(m => m.category === materialFilter);
         if (materialFilter === 'Group Resources') {
             const groupFilterVal = document.getElementById('material-group-filter-select').value;
             if (groupFilterVal && groupFilterVal !== 'ALL') {
@@ -909,13 +946,20 @@ function saveProfileSettings(event) {
 function renderDashboard() {
     const subjects = getUserData('subjects');
     const tasks = getUserData('tasks');
-    const materials = getUserData('materials');
+    const userMaterials = getUserData('materials');
+    const globalMaterials = getGlobalMaterials();
     const groups = getGlobalGroups().filter(g => g.members.includes(currentUser));
+    const userGroupIds = groups.map(g => g.id);
+
+    const sharedGroupMaterials = globalMaterials.filter(m => userGroupIds.includes(m.groupId));
+    const combinedMap = new Map();
+    userMaterials.forEach(m => combinedMap.set(m.id, m));
+    sharedGroupMaterials.forEach(m => combinedMap.set(m.id, m));
 
     document.getElementById('stat-subjects-count').textContent = subjects.length;
     document.getElementById('stat-tasks-count').textContent = tasks.filter(t => !t.completed).length;
     document.getElementById('stat-groups-count').textContent = groups.length;
-    document.getElementById('stat-materials-count').textContent = materials.length;
+    document.getElementById('stat-materials-count').textContent = combinedMap.size;
 
     const grid = document.getElementById('dashboard-subject-progress-grid');
     if (subjects.length === 0) {
@@ -991,6 +1035,7 @@ function readFileAsDataURL(file) {
 }
 
 function formatFileSize(bytes) {
+    if (typeof bytes === 'string') return bytes;
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -999,7 +1044,7 @@ function formatFileSize(bytes) {
 }
 
 function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
+    return (str || '').replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
