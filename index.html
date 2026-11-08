@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudySync - Academic Planner & Group Workspace</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom layout scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.7);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-animate {
+            animation: fadeIn 0.15s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200 flex flex-col font-sans">
+
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-slate-100 dark:border-slate-700 modal-animate">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-bold text-xl mb-3">SS</div>
+                <h2 class="text-2xl font-bold tracking-tight">Welcome to StudySync</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Your collaborative academic workspace</p>
+            </div>
+
+            <!-- Auth Tabs -->
+            <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6">
+                <button type="button" onclick="switchAuthTab('login')" id="tab-login" class="flex-1 pb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Sign In</button>
+                <button type="button" onclick="switchAuthTab('register')" id="tab-register" class="flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors">Register</button>
+            </div>
+
+            <div id="auth-error" class="hidden mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm"></div>
+
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Username</label>
+                    <input type="text" id="auth-username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="Enter username">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Password</label>
+                    <input type="password" id="auth-password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="••••••••">
+                </div>
+                <div id="confirm-password-container" class="hidden">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Confirm Password</label>
+                    <input type="password" id="auth-confirm-password" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="••••••••">
+                </div>
+
+                <div id="remember-me-container" class="flex items-center justify-between text-sm pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="remember-me" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span class="text-slate-600 dark:text-slate-300">Remember me</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-colors text-sm">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="flex-1 flex flex-col h-full hidden">
+        <!-- Top Navbar -->
+        <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">SS</div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">StudySync</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Academic Planner & Workspace</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="toggleDarkMode()" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Toggle Theme">
+                    <svg id="theme-icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="theme-icon-moon" class="w-5 h-5 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+                <div class="flex items-center gap-2">
+                    <div id="nav-user-avatar" class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs uppercase"></div>
+                    <span id="nav-username" class="text-sm font-medium"></span>
+                </div>
+                <button type="button" onclick="logout()" class="ml-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Log Out</button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex gap-8">
+            <button type="button" onclick="switchTab('dashboard')" id="nav-tab-dashboard" class="py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors">Dashboard</button>
+            <button type="button" onclick="switchTab('subjects')" id="nav-tab-subjects" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Subjects</button>
+            <button type="button" onclick="switchTab('tasks')" id="nav-tab-tasks" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Task Planner</button>
+            <button type="button" onclick="switchTab('groups')" id="nav-tab-groups" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Study Groups & Chat</button>
+            <button type="button" onclick="switchTab('materials')" id="nav-tab-materials" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Materials Library</button>
+            <button type="button" onclick="switchTab('profile')" id="nav-tab-profile" class="py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors">Profile</button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900">
+            
+            <!-- VIEW: DASHBOARD -->
+            <section id="view-dashboard" class="space-y-6 max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Academic Dashboard</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Overview of your subjects, task statuses, and deadline warnings.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Subject</button>
+                        <button type="button" onclick="openTaskModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ New Task</button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Subjects</p>
+                        <h3 id="stat-subjects-count" class="text-2xl font-bold mt-2">0</h3>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Tasks</p>
+                        <h3 id="stat-tasks-count" class="text-2xl font-bold mt-2">0</h3>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Study Groups</p>
+                        <h3 id="stat-groups-count" class="text-2xl font-bold mt-2">0</h3>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Shared Materials</p>
+                        <h3 id="stat-materials-count" class="text-2xl font-bold mt-2">0</h3>
+                    </div>
+                </div>
+
+                <!-- Subject Progress & Deadline Warnings -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                    <h3 class="text-base font-bold">Subject Task Breakdown & Deadline Warnings</h3>
+                    <div id="dashboard-subject-progress-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-xs text-slate-400 italic py-4">No subjects found.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SUBJECTS -->
+            <section id="view-subjects" class="space-y-6 max-w-7xl mx-auto hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Subjects</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Organize your academic subjects and access their associated tasks.</p>
+                    </div>
+                    <button type="button" onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Subject</button>
+                </div>
+
+                <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- VIEW: TASK PLANNER -->
+            <section id="view-tasks" class="space-y-6 max-w-7xl mx-auto hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Task Planner</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage tasks grouped by subject with file attachments and deadlines.</p>
+                    </div>
+                    <button type="button" onclick="openTaskModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Add Task</button>
+                </div>
+
+                <!-- Subject Tabs Filter -->
+                <div id="task-subject-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3"></div>
+
+                <div class="flex gap-2 pb-1">
+                    <button type="button" onclick="filterTasks('all')" id="filter-task-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Tasks</button>
+                    <button type="button" onclick="filterTasks('pending')" id="filter-task-pending" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Pending</button>
+                    <button type="button" onclick="filterTasks('completed')" id="filter-task-completed" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Completed</button>
+                </div>
+
+                <div id="tasks-list" class="space-y-3"></div>
+            </section>
+
+            <!-- VIEW: STUDY GROUPS & CHAT -->
+            <section id="view-groups" class="space-y-6 max-w-7xl mx-auto hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Study Groups & Collaborative Chat</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Join multiple study groups, chat in real-time, and share study materials directly.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="openCreateGroupModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">+ Create Group</button>
+                        <button type="button" onclick="openJoinGroupModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">Join with Code</button>
+                    </div>
+                </div>
+
+                <!-- Group Selector Tabs -->
+                <div id="group-selector-tabs" class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3"></div>
+
+                <!-- Active Group Workspace -->
+                <div id="group-workspace" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col h-[600px]">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h3 id="active-group-title" class="font-bold text-base">Select a Study Group</h3>
+                                <p id="active-group-code" class="text-xs text-slate-400">Group Code: ---</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span id="active-group-members-count" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">0 Members</span>
+                                <button type="button" id="leave-group-btn" onclick="leaveCurrentGroup()" class="hidden px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors items-center gap-1">
+                                    <span>🚪</span> Leave Group
+                                </button>
+                            </div>
+                        </div>
+                        <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div class="text-center text-slate-400 py-12 text-sm">Select or create a study group to start chatting.</div>
+                        </div>
+                        <div class="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-2">
+                            <label class="cursor-pointer p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Attach File">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                <input type="file" id="chat-file-input" onchange="handleChatFileUpload(event)" class="hidden">
+                            </label>
+                            <input type="text" id="chat-input-text" onkeypress="handleChatKeyPress(event)" placeholder="Type a message or share study thoughts..." class="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" onclick="sendChatMessage()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">Send</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 flex flex-col h-[600px]">
+                        <h3 class="font-bold text-sm mb-4">Group Members</h3>
+                        <div id="group-members-list" class="flex-1 overflow-y-auto space-y-2">
+                            <p class="text-xs text-slate-400 italic">No group selected.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: MATERIALS LIBRARY -->
+            <section id="view-materials" class="space-y-6 max-w-7xl mx-auto hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Materials Library</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">All uploaded study files and shared group documents with uploader and group attribution.</p>
+                    </div>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-3 items-center">
+                    <button type="button" onclick="filterMaterials('ALL')" id="mat-filter-ALL" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">All Resources</button>
+                    <button type="button" onclick="filterMaterials('Group Resources')" id="mat-filter-Group Resources" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Group Resources</button>
+                    <button type="button" onclick="filterMaterials('Lecture Notes')" id="mat-filter-Lecture Notes" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lecture Notes</button>
+                    <button type="button" onclick="filterMaterials('Lab Guide')" id="mat-filter-Lab Guide" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Lab Guide</button>
+                    <button type="button" onclick="filterMaterials('Exam Prep')" id="mat-filter-Exam Prep" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">Exam Prep</button>
+
+                    <!-- Group Filter Dropdown for Group Resources -->
+                    <div id="material-group-dropdown-container" class="ml-auto hidden">
+                        <select id="material-group-filter-select" onchange="renderMaterials()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-medium focus:outline-none">
+                            <option value="ALL">All Joined Groups</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </section>
+
+            <!-- VIEW: PROFILE -->
+            <section id="view-profile" class="space-y-6 max-w-3xl mx-auto hidden">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight">Student Profile</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Manage your personal account details, university info, specialty, and study group affiliations.</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-6">
+                    <div class="flex items-center gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
+                        <div id="profile-avatar-large" class="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-2xl uppercase"></div>
+                        <div>
+                            <h3 id="profile-display-name" class="text-xl font-bold"></h3>
+                            <p id="profile-display-role" class="text-sm text-indigo-600 dark:text-indigo-400 font-medium"></p>
+                        </div>
+                    </div>
+
+                    <form onsubmit="saveProfileSettings(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Username</label>
+                                <input type="text" id="profile-input-username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Studying Specialty / Major</label>
+                                <input type="text" id="profile-input-specialty" placeholder="e.g. Computer Science Student" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">University / Institution</label>
+                                <input type="text" id="profile-input-university" placeholder="Enter university name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">University Group Name / Designation</label>
+                                <input type="text" id="profile-input-group" placeholder="Enter group name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Password (Required to Save Changes)</label>
+                            <input type="password" id="profile-input-password" required placeholder="Enter password to confirm" class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition-colors shadow-sm">Save Profile Changes</button>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Subject Modal -->
+    <div id="subject-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700 modal-animate">
+            <h3 id="subject-modal-title" class="text-lg font-bold mb-4">Create Subject</h3>
+            <form id="subject-form" onsubmit="handleSubjectSubmit(event)" class="space-y-4">
+                <input type="hidden" id="edit-subject-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Subject Name</label>
+                    <input type="text" id="sub-name" required placeholder="Enter subject name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" onclick="closeSubjectModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Save Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700 modal-animate">
+            <h3 id="task-modal-title" class="text-lg font-bold mb-4">Create New Task</h3>
+            <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-4">
+                <input type="hidden" id="edit-task-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Task Title</label>
+                    <input type="text" id="task-title" required placeholder="Enter task title" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Subject</label>
+                    <select id="task-subject-select" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Deadline Date</label>
+                        <input type="date" id="task-deadline" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Category</label>
+                        <select id="task-category" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="" disabled selected>-- Choose Category --</option>
+                            <option value="Lecture Notes">Lecture Notes</option>
+                            <option value="Lab Guide">Lab Guide</option>
+                            <option value="Exam Prep">Exam Prep</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Attach Files / Notes</label>
+                    <input type="file" id="task-files" multiple class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/50 file:text-indigo-600 dark:file:text-indigo-400 hover:file:bg-indigo-100">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit" id="task-submit-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Add Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div id="create-group-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700 modal-animate">
+            <h3 class="text-lg font-bold mb-4">Create Study Group</h3>
+            <form onsubmit="handleCreateGroupSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Group Name</label>
+                    <input type="text" id="new-group-name" required placeholder="Enter study group name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Join Group Modal -->
+    <div id="join-group-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-700 modal-animate">
+            <h3 class="text-lg font-bold mb-4">Join Study Group</h3>
+            <form onsubmit="handleJoinGroupSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Group Join Code</label>
+                    <input type="text" id="join-group-code-input" required placeholder="Enter group join code" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm uppercase focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" onclick="closeJoinGroupModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Join Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // GLOBAL APP STATE
+        let currentUser = null;
+        let activeTab = 'dashboard';
+        let authMode = 'login';
+        let currentTaskFilter = 'all';
+        let currentTaskSubjectFilter = 'ALL';
+        let currentMaterialFilter = 'ALL';
+        let activeGroupId = null;
+
+        // INITIALIZATION
+        window.onload = function() {
+            checkDarkMode();
+            initStoredUserSession();
+        };
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('studysync_theme', isDark ? 'dark' : 'light');
+            updateThemeIcons(isDark);
+        }
+
+        function checkDarkMode() {
+            const savedTheme = localStorage.getItem('studysync_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            updateThemeIcons(isDark);
+        }
+
+        function updateThemeIcons(isDark) {
+            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isDark);
+            document.getElementById('theme-icon-moon').classList.toggle('hidden', isDark);
+        }
+
+        // AUTHENTICATION LOGIC
+        function switchAuthTab(mode) {
+            authMode = mode;
+            const errDiv = document.getElementById('auth-error');
+            errDiv.classList.add('hidden');
+            errDiv.innerText = '';
+
+            document.getElementById('auth-username').value = '';
+            document.getElementById('auth-password').value = '';
+            document.getElementById('auth-confirm-password').value = '';
+
+            if (mode === 'login') {
+                document.getElementById('tab-login').className = "flex-1 pb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors";
+                document.getElementById('tab-register').className = "flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors";
+                document.getElementById('confirm-password-container').classList.add('hidden');
+                document.getElementById('remember-me-container').classList.remove('hidden');
+                document.getElementById('auth-submit-btn').innerText = "Sign In";
+
+                const remembered = JSON.parse(localStorage.getItem('studysync_remembered_creds') || 'null');
+                if (remembered) {
+                    document.getElementById('auth-username').value = remembered.username || '';
+                    document.getElementById('auth-password').value = remembered.password || '';
+                    document.getElementById('remember-me').checked = true;
+                }
+            } else {
+                document.getElementById('tab-register').className = "flex-1 pb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors";
+                document.getElementById('tab-login').className = "flex-1 pb-3 text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors";
+                document.getElementById('confirm-password-container').classList.remove('hidden');
+                document.getElementById('remember-me-container').classList.add('hidden');
+                document.getElementById('auth-submit-btn').innerText = "Create Account";
+            }
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const errDiv = document.getElementById('auth-error');
+            errDiv.classList.add('hidden');
+
+            if (!username || !password) {
+                showAuthError('Please fill in all required fields.');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('studysync_users') || '{}');
+
+            if (authMode === 'register') {
+                const confirmPassword = document.getElementById('auth-confirm-password').value;
+                if (password !== confirmPassword) {
+                    showAuthError('Passwords do not match.');
+                    return;
+                }
+                if (users[username]) {
+                    showAuthError('Username already exists.');
+                    return;
+                }
+                users[username] = {
+                    username: username,
+                    password: password,
+                    specialty: 'Student',
+                    university: '',
+                    groupName: '',
+                    joinedGroups: []
+                };
+                localStorage.setItem('studysync_users', JSON.stringify(users));
+                loginUser(username);
+            } else {
+                if (!users[username] || users[username].password !== password) {
+                    showAuthError('Invalid username or password.');
+                    return;
+                }
+                const rememberMe = document.getElementById('remember-me').checked;
+                if (rememberMe) {
+                    localStorage.setItem('studysync_remembered_creds', JSON.stringify({ username, password }));
+                } else {
+                    localStorage.removeItem('studysync_remembered_creds');
+                }
+                loginUser(username);
+            }
+        }
+
+        function showAuthError(msg) {
+            const errDiv = document.getElementById('auth-error');
+            errDiv.innerText = msg;
+            errDiv.classList.remove('hidden');
+        }
+
+        function loginUser(username) {
+            currentUser = username;
+            sessionStorage.setItem('studysync_active_session', username);
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            
+            document.getElementById('nav-username').innerText = currentUser;
+            document.getElementById('nav-user-avatar').innerText = currentUser.charAt(0);
+
+            renderDashboard();
+            switchTab('dashboard');
+        }
+
+        function initStoredUserSession() {
+            const activeSession = sessionStorage.getItem('studysync_active_session');
+            if (activeSession) {
+                loginUser(activeSession);
+            } else {
+                switchAuthTab('login');
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('studysync_active_session');
+            currentUser = null;
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('hidden');
+            switchAuthTab('login');
+        }
+
+        // STORAGE UTILITIES
+        function getUserData() {
+            const users = JSON.parse(localStorage.getItem('studysync_users') || '{}');
+            return users[currentUser] || {};
+        }
+
+        function saveUserData(data) {
+            const users = JSON.parse(localStorage.getItem('studysync_users') || '{}');
+            users[currentUser] = { ...users[currentUser], ...data };
+            localStorage.setItem('studysync_users', JSON.stringify(users));
+        }
+
+        function getUserSubjects() {
+            return JSON.parse(localStorage.getItem(`studysync_subjects_${currentUser}`) || '[]');
+        }
+
+        function saveUserSubjects(subs) {
+            localStorage.setItem(`studysync_subjects_${currentUser}`, JSON.stringify(subs));
+        }
+
+        function getUserTasks() {
+            return JSON.parse(localStorage.getItem(`studysync_tasks_${currentUser}`) || '[]');
+        }
+
+        function saveUserTasks(tasks) {
+            localStorage.setItem(`studysync_tasks_${currentUser}`, JSON.stringify(tasks));
+        }
+
+        function getGlobalGroups() {
+            return JSON.parse(localStorage.getItem('studysync_global_groups') || '[]');
+        }
+
+        function saveGlobalGroups(groups) {
+            localStorage.setItem('studysync_global_groups', JSON.stringify(groups));
+        }
+
+        function getGlobalMaterials() {
+            return JSON.parse(localStorage.getItem('studysync_global_materials') || '[]');
+        }
+
+        function saveGlobalMaterials(mats) {
+            localStorage.setItem('studysync_global_materials', JSON.stringify(mats));
+        }
+
+        // NAVIGATION
+        function switchTab(tabId) {
+            activeTab = tabId;
+            ['dashboard', 'subjects', 'tasks', 'groups', 'materials', 'profile'].forEach(id => {
+                const sec = document.getElementById(`view-${id}`);
+                const btn = document.getElementById(`nav-tab-${id}`);
+                if (id === tabId) {
+                    sec.classList.remove('hidden');
+                    btn.className = "py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 transition-colors";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 transition-colors";
+                }
+            });
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'subjects') renderSubjects();
+            if (tabId === 'tasks') renderTasks();
+            if (tabId === 'groups') renderGroupsWorkspace();
+            if (tabId === 'materials') renderMaterials();
+            if (tabId === 'profile') loadProfileView();
+        }
+
+        // DEADLINE HELPER
+        function calculateDeadlineInfo(deadlineStr) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const due = new Date(deadlineStr);
+            due.setHours(0,0,0,0);
+            const diffTime = due - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return { label: `OVERDUE (${deadlineStr})`, color: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 border-red-200 dark:border-red-800' };
+            if (diffDays === 0) return { label: `DUE TODAY (${deadlineStr})`, color: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border-amber-200 dark:border-amber-800' };
+            if (diffDays === 1) return { label: `Due tomorrow (${deadlineStr})`, color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' };
+            return { label: `Due in ${diffDays} days (${deadlineStr})`, color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700' };
+        }
+
+        // DASHBOARD
+        function renderDashboard() {
+            const subjects = getUserSubjects();
+            const tasks = getUserTasks();
+            const userData = getUserData();
+            const joinedGroups = userData.joinedGroups || [];
+            const globalMaterials = getGlobalMaterials();
+
+            document.getElementById('stat-subjects-count').innerText = subjects.length;
+            document.getElementById('stat-tasks-count').innerText = tasks.filter(t => !t.completed).length;
+            document.getElementById('stat-groups-count').innerText = joinedGroups.length;
+
+            const visibleMats = globalMaterials.filter(m => m.uploader === currentUser || (m.groupId && joinedGroups.includes(m.groupId)));
+            document.getElementById('stat-materials-count').innerText = visibleMats.length;
+
+            const grid = document.getElementById('dashboard-subject-progress-grid');
+            if (subjects.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-slate-400 italic py-4 col-span-full">No subjects found. Click "+ New Subject" to create one.</p>';
+                return;
+            }
+
+            grid.innerHTML = subjects.map(sub => {
+                const subTasks = tasks.filter(t => t.subjectId === sub.id);
+                const completedCount = subTasks.filter(t => t.completed).length;
+                const total = subTasks.length;
+                const percent = total === 0 ? 0 : Math.round((completedCount / total) * 100);
+
+                const pendingTasks = subTasks.filter(t => !t.completed && t.deadline).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+                const nearestTask = pendingTasks[0];
+                const deadlineBadge = nearestTask ? calculateDeadlineInfo(nearestTask.deadline) : null;
+
+                return `
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white">${sub.name}</h4>
+                            <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+                            <span>${completedCount} / ${total} Tasks</span>
+                            ${deadlineBadge ? `<span class="px-2 py-0.5 rounded border ${deadlineBadge.color} font-medium text-[11px]">${deadlineBadge.label}</span>` : '<span class="text-slate-400">No pending deadlines</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // SUBJECTS
+        function renderSubjects() {
+            const subjects = getUserSubjects();
+            const tasks = getUserTasks();
+            const grid = document.getElementById('subjects-grid');
+
+            if (subjects.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                        <p class="text-sm text-slate-500 mb-3">You haven't created any subjects yet.</p>
+                        <button type="button" onclick="openSubjectModal()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg">+ Add Subject</button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = subjects.map(sub => {
+                const subTasks = tasks.filter(t => t.subjectId === sub.id);
+                const completedCount = subTasks.filter(t => t.completed).length;
+                const total = subTasks.length;
+                const percent = total === 0 ? 0 : Math.round((completedCount / total) * 100);
+
+                return `
+                    <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <h3 class="font-bold text-base text-slate-900 dark:text-white">${sub.name}</h3>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" onclick="openSubjectModal('${sub.id}')" class="p-1 text-slate-400 hover:text-indigo-600 text-xs">✏️</button>
+                                    <button type="button" onclick="deleteSubject('${sub.id}')" class="p-1 text-slate-400 hover:text-red-600 text-xs">🗑️</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${total} total task(s) assigned</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-slate-500 font-medium">${completedCount} / ${total} Tasks Done</span>
+                                <span class="font-bold text-indigo-600 dark:text-indigo-400">${percent}%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div class="bg-indigo-600 h-full rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                            </div>
+                            <button type="button" onclick="filterTasksBySubject('${sub.id}')" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline pt-1 inline-block">View Tasks →</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openSubjectModal(editId = null) {
+            document.getElementById('edit-subject-id').value = editId || '';
+            document.getElementById('sub-name').value = '';
+            const modal = document.getElementById('subject-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (editId) {
+                document.getElementById('subject-modal-title').innerText = "Edit Subject";
+                const subjects = getUserSubjects();
+                const target = subjects.find(s => s.id === editId);
+                if (target) document.getElementById('sub-name').value = target.name;
+            } else {
+                document.getElementById('subject-modal-title').innerText = "Create Subject";
+            }
+        }
+
+        function closeSubjectModal() {
+            const modal = document.getElementById('subject-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleSubjectSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('sub-name').value.trim();
+            const editId = document.getElementById('edit-subject-id').value;
+            if (!name) return;
+
+            let subjects = getUserSubjects();
+            if (editId) {
+                subjects = subjects.map(s => s.id === editId ? { ...s, name } : s);
+            } else {
+                subjects.push({ id: `sub-${Date.now()}`, name });
+            }
+            saveUserSubjects(subjects);
+            closeSubjectModal();
+            renderSubjects();
+            renderDashboard();
+        }
+
+        function deleteSubject(id) {
+            if (!confirm("Are you sure you want to delete this subject? Associated tasks will be removed.")) return;
+            let subjects = getUserSubjects().filter(s => s.id !== id);
+            saveUserSubjects(subjects);
+            let tasks = getUserTasks().filter(t => t.subjectId !== id);
+            saveUserTasks(tasks);
+            renderSubjects();
+            renderDashboard();
+        }
+
+        // TASK PLANNER
+        function filterTasksBySubject(subId) {
+            currentTaskSubjectFilter = subId;
+            switchTab('tasks');
+        }
+
+        function filterTasks(status) {
+            currentTaskFilter = status;
+            ['all', 'pending', 'completed'].forEach(st => {
+                const btn = document.getElementById(`filter-task-${st}`);
+                if (st === status) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700";
+                }
+            });
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const subjects = getUserSubjects();
+            const tasks = getUserTasks();
+
+            // Render Subject Tabs
+            const tabsContainer = document.getElementById('task-subject-tabs');
+            let tabsHtml = `<button type="button" onclick="setTaskSubjectTab('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${currentTaskSubjectFilter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">All Subjects</button>`;
+            subjects.forEach(sub => {
+                tabsHtml += `<button type="button" onclick="setTaskSubjectTab('${sub.id}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${currentTaskSubjectFilter === sub.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">${sub.name}</button>`;
+            });
+            tabsContainer.innerHTML = tabsHtml;
+
+            // Filter tasks
+            let filtered = tasks;
+            if (currentTaskSubjectFilter !== 'ALL') {
+                filtered = filtered.filter(t => t.subjectId === currentTaskSubjectFilter);
+            }
+            if (currentTaskFilter === 'pending') filtered = filtered.filter(t => !t.completed);
+            if (currentTaskFilter === 'completed') filtered = filtered.filter(t => t.completed);
+
+            const listContainer = document.getElementById('tasks-list');
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<div class="py-12 text-center text-slate-400 text-xs bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">No tasks found matching your filter.</div>`;
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(t => {
+                const sub = subjects.find(s => s.id === t.subjectId);
+                const subName = sub ? sub.name : 'Unassigned';
+                const deadlineInfo = calculateDeadlineInfo(t.deadline);
+
+                return `
+                    <div class="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-4">
+                        <div class="flex items-start gap-3">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete('${t.id}')" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer">
+                            <div>
+                                <h4 class="font-bold text-sm ${t.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}">${t.title}</h4>
+                                <div class="flex flex-wrap items-center gap-2 mt-1">
+                                    <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold">${subName}</span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-medium">${t.category || 'General'}</span>
+                                    <span class="px-2 py-0.5 rounded border text-[11px] font-medium ${deadlineInfo.color}">${deadlineInfo.label}</span>
+                                </div>
+                                ${t.files && t.files.length > 0 ? `
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        ${t.files.map(f => `
+                                            <a href="${f.data}" download="${f.name}" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
+                                                📎 ${f.name}
+                                            </a>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openTaskModal('${t.id}')" class="p-1.5 text-slate-400 hover:text-indigo-600 text-xs">✏️ Edit</button>
+                            <button type="button" onclick="deleteTask('${t.id}')" class="p-1.5 text-slate-400 hover:text-red-600 text-xs">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setTaskSubjectTab(subId) {
+            currentTaskSubjectFilter = subId;
+            renderTasks();
+        }
+
+        function toggleTaskComplete(id) {
+            let tasks = getUserTasks();
+            tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+            saveUserTasks(tasks);
+            renderTasks();
+            renderDashboard();
+            renderSubjects();
+        }
+
+        function deleteTask(id) {
+            if (!confirm("Are you sure you want to delete this task?")) return;
+            let tasks = getUserTasks().filter(t => t.id !== id);
+            saveUserTasks(tasks);
+            renderTasks();
+            renderDashboard();
+            renderSubjects();
+        }
+
+        function openTaskModal(editId = null) {
+            const subjects = getUserSubjects();
+            if (subjects.length === 0) {
+                alert("Please create at least one subject before adding tasks.");
+                return;
+            }
+
+            const select = document.getElementById('task-subject-select');
+            select.innerHTML = '<option value="" disabled selected>-- Choose Subject --</option>' + 
+                subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+            document.getElementById('edit-task-id').value = editId || '';
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-deadline').value = '';
+            document.getElementById('task-category').value = '';
+            document.getElementById('task-files').value = '';
+
+            const modal = document.getElementById('task-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (editId) {
+                document.getElementById('task-modal-title').innerText = "Edit Task";
+                const tasks = getUserTasks();
+                const target = tasks.find(t => t.id === editId);
+                if (target) {
+                    document.getElementById('task-title').value = target.title;
+                    document.getElementById('task-subject-select').value = target.subjectId;
+                    document.getElementById('task-deadline').value = target.deadline;
+                    document.getElementById('task-category').value = target.category || '';
+                }
+            } else {
+                document.getElementById('task-modal-title').innerText = "Create New Task";
+            }
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('task-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleTaskSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('task-title').value.trim();
+            const subjectId = document.getElementById('task-subject-select').value;
+            const deadline = document.getElementById('task-deadline').value;
+            const category = document.getElementById('task-category').value;
+            const editId = document.getElementById('edit-task-id').value;
+            const fileInput = document.getElementById('task-files');
+
+            if (!title || !subjectId || !deadline) return;
+
+            let tasks = getUserTasks();
+            const existingTask = editId ? tasks.find(t => t.id === editId) : null;
+            let fileList = existingTask && existingTask.files ? [...existingTask.files] : [];
+
+            const processFiles = () => {
+                if (editId) {
+                    tasks = tasks.map(t => t.id === editId ? { ...t, title, subjectId, deadline, category, files: fileList } : t);
+                } else {
+                    const newTask = {
+                        id: `task-${Date.now()}`,
+                        title,
+                        subjectId,
+                        deadline,
+                        category,
+                        completed: false,
+                        files: fileList
+                    };
+                    tasks.push(newTask);
+
+                    // Push files to global materials as personal resources
+                    fileList.forEach(f => {
+                        const allMat = getGlobalMaterials();
+                        allMat.push({
+                            id: `mat-${Date.now()}-${Math.random()}`,
+                            title: f.name,
+                            category: category,
+                            uploader: currentUser,
+                            date: new Date().toLocaleDateString(),
+                            fileData: f.data
+                        });
+                        saveGlobalMaterials(allMat);
+                    });
+                }
+
+                saveUserTasks(tasks);
+                closeTaskModal();
+                renderTasks();
+                renderDashboard();
+                renderSubjects();
+            };
+
+            if (fileInput.files.length > 0) {
+                let filesRead = 0;
+                for (let i = 0; i < fileInput.files.length; i++) {
+                    const file = fileInput.files[i];
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        fileList.push({ name: file.name, data: evt.target.result });
+                        filesRead++;
+                        if (filesRead === fileInput.files.length) processFiles();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            } else {
+                processFiles();
+            }
+        }
+
+        // STUDY GROUPS & CHAT
+        function renderGroupsWorkspace() {
+            const userData = getUserData();
+            const joinedGroupIds = userData.joinedGroups || [];
+            const globalGroups = getGlobalGroups();
+            const userGroups = globalGroups.filter(g => joinedGroupIds.includes(g.id));
+
+            const tabsContainer = document.getElementById('group-selector-tabs');
+            if (userGroups.length === 0) {
+                tabsContainer.innerHTML = '<p class="text-xs text-slate-400 italic py-1">You are not a member of any study groups. Create or join one below.</p>';
+                activeGroupId = null;
+                renderActiveGroupDetails(null);
+                return;
+            }
+
+            if (!activeGroupId || !joinedGroupIds.includes(activeGroupId)) {
+                activeGroupId = userGroups[0].id;
+            }
+
+            tabsContainer.innerHTML = userGroups.map(g => `
+                <button type="button" onclick="selectGroup('${g.id}')" class="px-4 py-2 rounded-lg text-xs font-semibold ${g.id === activeGroupId ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'}">
+                    ${g.name} (${g.code})
+                </button>
+            `).join('');
+
+            const targetGroup = globalGroups.find(g => g.id === activeGroupId);
+            renderActiveGroupDetails(targetGroup);
+        }
+
+        function selectGroup(gId) {
+            activeGroupId = gId;
+            renderGroupsWorkspace();
+        }
+
+        function renderActiveGroupDetails(group) {
+            const leaveBtn = document.getElementById('leave-group-btn');
+            if (!group) {
+                document.getElementById('active-group-title').innerText = "Select a Study Group";
+                document.getElementById('active-group-code').innerText = "Group Code: ---";
+                document.getElementById('active-group-members-count').innerText = "0 Members";
+                document.getElementById('chat-messages-container').innerHTML = '<div class="text-center text-slate-400 py-12 text-sm">Select or create a study group to start chatting.</div>';
+                document.getElementById('group-members-list').innerHTML = '<p class="text-xs text-slate-400 italic">No group selected.</p>';
+                if (leaveBtn) {
+                    leaveBtn.classList.add('hidden');
+                    leaveBtn.classList.remove('flex');
+                }
+                return;
+            }
+
+            if (leaveBtn) {
+                leaveBtn.classList.remove('hidden');
+                leaveBtn.classList.add('flex');
+            }
+
+            document.getElementById('active-group-title').innerText = group.name;
+            document.getElementById('active-group-code').innerText = `Group Code: ${group.code}`;
+            document.getElementById('active-group-members-count').innerText = `${group.members.length} Member(s)`;
+
+            // Render Messages
+            const messagesContainer = document.getElementById('chat-messages-container');
+            const messages = group.messages || [];
+            if (messages.length === 0) {
+                messagesContainer.innerHTML = '<div class="text-center text-slate-400 py-12 text-sm">No messages yet. Start the conversation!</div>';
+            } else {
+                messagesContainer.innerHTML = messages.map(m => {
+                    const isSelf = m.sender === currentUser;
+                    return `
+                        <div class="flex flex-col ${isSelf ? 'items-end' : 'items-start'}">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">${m.sender}</span>
+                                <span class="text-[10px] text-slate-400">${m.time}</span>
+                            </div>
+                            <div class="max-w-xs md:max-w-md px-4 py-2.5 rounded-2xl text-sm ${isSelf ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-none'} shadow-xs">
+                                ${m.text ? `<p>${m.text}</p>` : ''}
+                                ${m.file ? `
+                                    <div class="mt-2 pt-2 border-t ${isSelf ? 'border-indigo-500' : 'border-slate-200 dark:border-slate-700'} flex items-center justify-between gap-3">
+                                        <span class="text-xs font-semibold truncate">📄 ${m.file.name}</span>
+                                        <a href="${m.file.data}" download="${m.file.name}" class="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors">Download</a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Render Members List
+            const membersList = document.getElementById('group-members-list');
+            membersList.innerHTML = group.members.map(m => `
+                <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/60">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xs uppercase">${m.charAt(0)}</div>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">${m} ${m === group.creator ? '<span class="text-slate-400 font-normal">(Creator)</span>' : ''}</span>
+                </div>
+            `).join('');
+        }
+
+        function sendChatMessage() {
+            if (!activeGroupId) return;
+            const input = document.getElementById('chat-input-text');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const globalGroups = getGlobalGroups();
+            const groupIndex = globalGroups.findIndex(g => g.id === activeGroupId);
+            if (groupIndex === -1) return;
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            globalGroups[groupIndex].messages = globalGroups[groupIndex].messages || [];
+            globalGroups[groupIndex].messages.push({
+                sender: currentUser,
+                text,
+                time: timeStr
+            });
+
+            saveGlobalGroups(globalGroups);
+            input.value = '';
+            renderActiveGroupDetails(globalGroups[groupIndex]);
+        }
+
+        function handleChatKeyPress(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        function handleChatFileUpload(e) {
+            if (!activeGroupId) return;
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const globalGroups = getGlobalGroups();
+                const groupIndex = globalGroups.findIndex(g => g.id === activeGroupId);
+                if (groupIndex === -1) return;
+
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Push message to chat
+                globalGroups[groupIndex].messages = globalGroups[groupIndex].messages || [];
+                globalGroups[groupIndex].messages.push({
+                    sender: currentUser,
+                    text: `Shared file: ${file.name}`,
+                    time: timeStr,
+                    file: { name: file.name, data: evt.target.result }
+                });
+                saveGlobalGroups(globalGroups);
+
+                // Push to global shared materials array for group sync
+                const globalMats = getGlobalMaterials();
+                globalMats.push({
+                    id: `mat-${Date.now()}-${Math.random()}`,
+                    title: file.name,
+                    category: 'Group Resources',
+                    uploader: currentUser,
+                    groupId: activeGroupId,
+                    groupName: globalGroups[groupIndex].name,
+                    date: new Date().toLocaleDateString(),
+                    fileData: evt.target.result
+                });
+                saveGlobalMaterials(globalMats);
+
+                document.getElementById('chat-file-input').value = '';
+                renderActiveGroupDetails(globalGroups[groupIndex]);
+                renderDashboard();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function leaveCurrentGroup() {
+            if (!activeGroupId) return;
+            const globalGroups = getGlobalGroups();
+            const group = globalGroups.find(g => g.id === activeGroupId);
+            if (!group) return;
+
+            const confirmLeave = window.confirm(`Are you sure you want to leave ${group.name}? Files shared in this group will be removed from your Materials Library.`);
+            if (!confirmLeave) return;
+
+            const leavingGroupId = activeGroupId;
+
+            // Remove member from global group
+            group.members = group.members.filter(m => m !== currentUser);
+            saveGlobalGroups(globalGroups);
+
+            // Update user joined groups
+            const userData = getUserData();
+            userData.joinedGroups = (userData.joinedGroups || []).filter(gId => gId !== leavingGroupId);
+            saveUserData(userData);
+
+            // Reset active group state and re-render
+            activeGroupId = null;
+            renderGroupsWorkspace();
+            renderDashboard();
+            if (activeTab === 'materials') {
+                renderMaterials();
+            }
+        }
+
+        function openCreateGroupModal() {
+            document.getElementById('new-group-name').value = '';
+            const modal = document.getElementById('create-group-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCreateGroupModal() {
+            const modal = document.getElementById('create-group-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleCreateGroupSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-group-name').value.trim();
+            if (!name) return;
+
+            const code = 'GRP-' + Math.floor(1000 + Math.random() * 9000);
+            const newGroup = {
+                id: `grp-${Date.now()}`,
+                name,
+                code,
+                creator: currentUser,
+                members: [currentUser],
+                messages: []
+            };
+
+            const globalGroups = getGlobalGroups();
+            globalGroups.push(newGroup);
+            saveGlobalGroups(globalGroups);
+
+            const userData = getUserData();
+            userData.joinedGroups = userData.joinedGroups || [];
+            userData.joinedGroups.push(newGroup.id);
+            saveUserData(userData);
+
+            closeCreateGroupModal();
+            activeGroupId = newGroup.id;
+            renderGroupsWorkspace();
+            renderDashboard();
+        }
+
+        function openJoinGroupModal() {
+            document.getElementById('join-group-code-input').value = '';
+            const modal = document.getElementById('join-group-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeJoinGroupModal() {
+            const modal = document.getElementById('join-group-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleJoinGroupSubmit(e) {
+            e.preventDefault();
+            const code = document.getElementById('join-group-code-input').value.trim().toUpperCase();
+            if (!code) return;
+
+            const globalGroups = getGlobalGroups();
+            const group = globalGroups.find(g => g.code === code);
+
+            if (!group) {
+                alert("Invalid group code. Please check and try again.");
+                return;
+            }
+
+            if (!group.members.includes(currentUser)) {
+                group.members.push(currentUser);
+                saveGlobalGroups(globalGroups);
+            }
+
+            const userData = getUserData();
+            userData.joinedGroups = userData.joinedGroups || [];
+            if (!userData.joinedGroups.includes(group.id)) {
+                userData.joinedGroups.push(group.id);
+                saveUserData(userData);
+            }
+
+            closeJoinGroupModal();
+            activeGroupId = group.id;
+            renderGroupsWorkspace();
+            renderDashboard();
+        }
+
+        // MATERIALS LIBRARY
+        function filterMaterials(category) {
+            currentMaterialFilter = category;
+            const categories = ['ALL', 'Group Resources', 'Lecture Notes', 'Lab Guide', 'Exam Prep'];
+            categories.forEach(cat => {
+                const btn = document.getElementById(`mat-filter-${cat}`);
+                if (btn) {
+                    if (cat === category) {
+                        btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700";
+                    }
+                }
+            });
+
+            const dropdownContainer = document.getElementById('material-group-dropdown-container');
+            if (category === 'Group Resources') {
+                dropdownContainer.classList.remove('hidden');
+                populateMaterialGroupDropdown();
+            } else {
+                dropdownContainer.classList.add('hidden');
+            }
+
+            renderMaterials();
+        }
+
+        function populateMaterialGroupDropdown() {
+            const userData = getUserData();
+            const userGroups = userData.joinedGroups || [];
+            const globalGroups = getGlobalGroups();
+            const joinedGroups = globalGroups.filter(g => userGroups.includes(g.id));
+
+            const select = document.getElementById('material-group-filter-select');
+            select.innerHTML = '<option value="ALL">All Joined Groups</option>' + 
+                joinedGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        }
+
+        function renderMaterials() {
+            const userData = getUserData();
+            const userGroups = userData.joinedGroups || [];
+            const allMaterials = getGlobalMaterials();
+
+            let visibleMaterials = allMaterials.filter(m => {
+                const isOwner = m.uploader === currentUser;
+                // If it is a group resource, strict check that the user is currently in that joinedGroup
+                if (m.groupId) {
+                    return userGroups.includes(m.groupId);
+                }
+                return isOwner;
+            });
+
+            if (currentMaterialFilter !== 'ALL') {
+                visibleMaterials = visibleMaterials.filter(m => m.category === currentMaterialFilter);
+            }
+
+            if (currentMaterialFilter === 'Group Resources') {
+                const selectedGroupId = document.getElementById('material-group-filter-select').value;
+                if (selectedGroupId !== 'ALL') {
+                    visibleMaterials = visibleMaterials.filter(m => m.groupId === selectedGroupId);
+                }
+            }
+
+            const grid = document.getElementById('materials-grid');
+            if (visibleMaterials.length === 0) {
+                grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 text-sm italic">No study materials found in this category.</div>';
+                return;
+            }
+
+            grid.innerHTML = visibleMaterials.map(m => `
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-start justify-between">
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate">${m.title}</h4>
+                            <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold">${m.category}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Shared by <span class="font-semibold text-slate-600 dark:text-slate-300">${m.uploader}</span> ${m.groupName ? `in <span class="font-semibold text-indigo-500">${m.groupName}</span>` : ''}</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400">${m.date}</span>
+                        <a href="${m.fileData}" download="${m.title}" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition-colors">Download File</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // PROFILE VIEW & EDITING
+        function loadProfileView() {
+            const userData = getUserData();
+            document.getElementById('profile-avatar-large').innerText = currentUser.charAt(0);
+            document.getElementById('profile-display-name').innerText = currentUser;
+            document.getElementById('profile-display-role').innerText = formatStudentSpecialty(userData.specialty || 'Student');
+
+            document.getElementById('profile-input-username').value = currentUser;
+            document.getElementById('profile-input-specialty').value = userData.specialty || '';
+            document.getElementById('profile-input-university').value = userData.university || '';
+            document.getElementById('profile-input-group').value = userData.groupName || '';
+            document.getElementById('profile-input-password').value = '';
+        }
+
+        function formatStudentSpecialty(inputStr) {
+            if (!inputStr || !inputStr.trim()) return 'Student';
+            let cleaned = inputStr.trim();
+            if (/\bstudent\b/i.test(cleaned)) {
+                cleaned = cleaned.replace(/\bstudent\b/gi, 'Student');
+            } else {
+                cleaned = `${cleaned} Student`;
+            }
+            return cleaned;
+        }
+
+        function saveProfileSettings(e) {
+            e.preventDefault();
+            const newUsername = document.getElementById('profile-input-username').value.trim();
+            const specialty = document.getElementById('profile-input-specialty').value.trim();
+            const university = document.getElementById('profile-input-university').value.trim();
+            const groupName = document.getElementById('profile-input-group').value.trim();
+            const password = document.getElementById('profile-input-password').value;
+
+            const userData = getUserData();
+
+            if (password !== userData.password) {
+                alert("Incorrect password. Settings were not saved.");
+                return;
+            }
+
+            const formattedSpecialty = formatStudentSpecialty(specialty);
+            const users = JSON.parse(localStorage.getItem('studysync_users') || '{}');
+
+            if (newUsername !== currentUser) {
+                if (users[newUsername]) {
+                    alert("Username already taken. Please pick another.");
+                    return;
+                }
+
+                const oldUserKey = currentUser;
+                delete users[oldUserKey];
+                
+                users[newUsername] = {
+                    username: newUsername,
+                    password: password,
+                    specialty: formattedSpecialty,
+                    university,
+                    groupName,
+                    joinedGroups: userData.joinedGroups || []
+                };
+                localStorage.setItem('studysync_users', JSON.stringify(users));
+
+                const subs = localStorage.getItem(`studysync_subjects_${oldUserKey}`);
+                if (subs) {
+                    localStorage.setItem(`studysync_subjects_${newUsername}`, subs);
+                    localStorage.removeItem(`studysync_subjects_${oldUserKey}`);
+                }
+                const tasks = localStorage.getItem(`studysync_tasks_${oldUserKey}`);
+                if (tasks) {
+                    localStorage.setItem(`studysync_tasks_${newUsername}`, tasks);
+                    localStorage.removeItem(`studysync_tasks_${oldUserKey}`);
+                }
+
+                const globalGroups = getGlobalGroups();
+                globalGroups.forEach(g => {
+                    g.members = g.members.map(m => m === oldUserKey ? newUsername : m);
+                    if (g.creator === oldUserKey) g.creator = newUsername;
+                });
+                saveGlobalGroups(globalGroups);
+
+                currentUser = newUsername;
+                sessionStorage.setItem('studysync_active_session', newUsername);
+                document.getElementById('nav-username').innerText = newUsername;
+                document.getElementById('nav-user-avatar').innerText = newUsername.charAt(0);
+            } else {
+                saveUserData({
+                    specialty: formattedSpecialty,
+                    university,
+                    groupName
+                });
+            }
+
+            document.getElementById('profile-display-name').innerText = currentUser;
+            document.getElementById('profile-display-role').innerText = formattedSpecialty;
+            document.getElementById('profile-input-password').value = '';
+
+            alert("Profile settings updated successfully!");
+        }
+    </script>
+</body>
+</html>
