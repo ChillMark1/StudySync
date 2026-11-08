@@ -180,15 +180,6 @@ function loginUser(username) {
     document.getElementById('nav-username').textContent = currentUser;
     document.getElementById('nav-user-avatar').textContent = currentUser.charAt(0).toUpperCase();
 
-    let subjects = getUserSubjects();
-    if (subjects.length === 0) {
-        subjects = [
-            { id: 'sub-1', name: 'Computer Science' },
-            { id: 'sub-2', name: 'Mathematics' }
-        ];
-        saveUserSubjects(subjects);
-    }
-
     renderDashboard();
     renderSubjects();
     renderTasks();
